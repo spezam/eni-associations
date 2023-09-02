@@ -1,13 +1,13 @@
 use aws_sdk_lambda::types::FunctionConfiguration;
 
 #[derive(Debug)]
-pub struct Ec2 {
+pub struct EniAssociationsClient {
     pub ec2_client: aws_sdk_ec2::Client,
     pub eni: String,
 }
 
-impl Ec2 {
-    pub async fn new(eni: String) -> Self {
+impl EniAssociationsClient {
+    pub async fn new(eni: String) -> EniAssociationsClient {
         let shared_config = aws_config::load_from_env().await;
         let ec2_client = aws_sdk_ec2::Client::new(&shared_config);
 
@@ -21,7 +21,7 @@ impl Ec2 {
         let res = self
             .ec2_client
             .describe_network_interfaces()
-            .network_interface_ids(self.eni.clone())
+            .network_interface_ids(&self.eni)
             .send()
             .await?;
 
