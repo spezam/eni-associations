@@ -14,6 +14,6 @@ struct CliArgs {
 async fn main() {
     let args = CliArgs::parse();
 
-    let ec2 = EniAssociationsClient::new(&args.eni).await;
+    let ec2 = EniAssociationsClient::new(args.eni).await;
     ec2.list_eni_associations().await.unwrap();
 }
