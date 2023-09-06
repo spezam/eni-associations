@@ -1,13 +1,13 @@
 use aws_sdk_lambda::types::FunctionConfiguration;
 
 #[derive(Debug)]
-pub struct EniAssociationsClient {
+pub struct EniAssociationsClient<'a> {
     pub ec2_client: aws_sdk_ec2::Client,
-    pub eni: String,
+    pub eni: &'a str,
 }
 
-impl EniAssociationsClient {
-    pub async fn new(eni: String) -> EniAssociationsClient {
+impl<'a> EniAssociationsClient<'a> {
+    pub async fn new(eni: &'a str) -> EniAssociationsClient {
         let shared_config = aws_config::load_from_env().await;
         let ec2_client = aws_sdk_ec2::Client::new(&shared_config);
 
@@ -21,18 +21,16 @@ impl EniAssociationsClient {
         let res = self
             .ec2_client
             .describe_network_interfaces()
-            .network_interface_ids(&self.eni)
+            .network_interface_ids(&*self.eni)
             .send()
             .await?;
 
-        // if let Some(network_interfaces) = res.network_interfaces() {
-        // for network_interface in network_interfaces {
         let (subnet_id, security_groups) = match res.network_interfaces() {
             Some(network_interface) => (
                 network_interface[0].subnet_id().unwrap(),
                 network_interface[0].groups().unwrap(),
             ),
-            None => panic!(),
+            None => panic!("Can't find network interface"),
         };
 
         println!(
@@ -66,10 +64,10 @@ impl EniAssociationsClient {
             lambda_functions.append(&mut res.functions().unwrap().to_vec());
         }
 
-        // filter out functions:
-        // - no VPC
-        // - no subnetIds
-        // - securityGroupIds not containing ENI securityGroupId
+        // filter out lambda functions WITHOUT:
+        // - VPC
+        // - subnetIds
+        // - securityGroupIds containing ENI securityGroupId
         lambda_functions = lambda_functions
             .iter()
             .filter(|s| s.vpc_config().is_some())
@@ -98,7 +96,7 @@ impl EniAssociationsClient {
         }
 
         println!(
-            "Functions associated with the same subnet and security groups as {}.",
+            "Functions associated with the same subnet and security groups as {}:",
             self.eni
         );
         for lambda in lambda_functions {
