@@ -10,5 +10,5 @@ anyhow = "1.0.75"
 aws-config = "0.56.1"
 aws-sdk-ec2 = "0.34.0"
 aws-sdk-lambda = "0.33.0"
-clap = { version = "4.4.6", features = ["derive"] }
+clap = { version = "4.4.7", features = ["derive"] }
 tokio = { version = "1.33.0", features = ["full"] }
