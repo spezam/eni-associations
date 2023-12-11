@@ -25,13 +25,11 @@ impl EniAssociationsClient {
             .send()
             .await?;
 
-        let (subnet_id, security_groups) = match res.network_interfaces() {
-            Some(network_interface) => (
-                network_interface[0].subnet_id().unwrap(),
-                network_interface[0].groups().unwrap(),
-            ),
-            None => panic!("Can't find network interface"),
-        };
+        if res.network_interfaces().is_empty() {
+            panic!("Can't find network interface");
+        }
+        let subnet_id = res.network_interfaces()[0].subnet_id().unwrap();
+        let security_groups = res.network_interfaces()[0].groups();
 
         println!(
             "Found {} with {} using SecurityGroups {}",
@@ -50,7 +48,7 @@ impl EniAssociationsClient {
             .function_version(aws_sdk_lambda::types::FunctionVersion::All)
             .send()
             .await?;
-        lambda_functions.append(&mut res.functions().unwrap().to_vec());
+        lambda_functions.append(&mut res.functions().to_vec());
 
         // paginate
         while res.next_marker.is_some() {
@@ -61,7 +59,7 @@ impl EniAssociationsClient {
                 .send()
                 .await?;
 
-            lambda_functions.append(&mut res.functions().unwrap().to_vec());
+            lambda_functions.append(&mut res.functions().to_vec());
         }
 
         // filter out lambda functions WITHOUT:
@@ -71,19 +69,17 @@ impl EniAssociationsClient {
         lambda_functions = lambda_functions
             .iter()
             .filter(|s| s.vpc_config().is_some())
-            .filter(|s| !s.vpc_config().unwrap().subnet_ids().unwrap().is_empty())
+            .filter(|s| !s.vpc_config().unwrap().subnet_ids().is_empty())
             .filter(|s| {
                 s.vpc_config()
                     .unwrap()
                     .subnet_ids()
-                    .unwrap()
                     .contains(&subnet_id.into())
             })
             .filter(|s| {
                 s.vpc_config()
                     .unwrap()
                     .security_group_ids()
-                    .unwrap()
                     .contains(&security_groups[0].group_id().unwrap().to_string())
             })
             .cloned()
